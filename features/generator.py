@@ -1,6 +1,6 @@
 import urllib.parse
 
-class WazeLink():
+class WazeGenerator():
     def generate_waze_link(address: str) -> str:
         address = address.strip()
 
@@ -17,3 +17,18 @@ class WazeLink():
         encoded = urllib.parse.quote_plus(formatted)
 
         return f"https://waze.com/ul?q={encoded}"
+    
+    def generate_waze_coord(coord: str) -> str:
+        coord = coord.strip()
+        
+        if "," in coord:
+            lat, lon = coord.split(",", 1)
+            
+            lat = lat.strip()
+            lon = lon.strip()
+            
+            formatted = f"{lat},{lon}"
+        
+            return f"https://waze.com/ul?ll={formatted}"
+        
+        return "Coordenada inválida."

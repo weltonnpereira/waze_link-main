@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (QApplication)
 
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
-from features.generator import WazeLink
+from features.generator import WazeGenerator
 from PyQt5.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout)
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
@@ -24,6 +24,8 @@ logging.basicConfig(level=logging.INFO)
 class WazeLinkGUI(QWidget):
     def __init__(self): 
         super().__init__()
+        
+        self.full_link = ""
           
         self.logo = QLabel("Mani's Esfirras", self)
         self.link_label = QLabel("Digite o endereço completo:", self)
@@ -126,8 +128,20 @@ class WazeLinkGUI(QWidget):
             self.adjustSize()
             return 
 
-        address = WazeLink.generate_waze_link(link)
-        self.res_link.setText(address)
+        address = WazeGenerator.generate_waze_link(link)
+        
+        self.full_link = address
+        
+        fm = self.res_link.fontMetrics()
+        elided = fm.elidedText(
+            address,
+            Qt.TextElideMode.ElideMiddle,
+            self.res_link.width()
+        )
+        
+        self.res_link.setText(elided)
+        self.res_link.setToolTip(address)
+        
         self.copy_button.setEnabled(True)
         self.copied_link.clear()
         self.link_input.clear()
@@ -135,8 +149,125 @@ class WazeLinkGUI(QWidget):
         self.adjustSize()
 
     def copy_link(self):
-        QApplication.clipboard().setText(self.res_link.text())
+        QApplication.clipboard().setText(self.full_link)
         self.copied_link.setText("Link Copiado.")
+        
+class WazeCoordGUI(QWidget):
+    def __init__(self): 
+        super().__init__()
+          
+        self.logo = QLabel("Mani's Esfirras", self)
+        self.coord_label = QLabel("Digite a coordenada completa:", self)
+        self.coord_input = QLineEdit(self)
+        self.get_coord_button = QPushButton("Formatar", self)
+
+        self.res_coord = QLabel()
+        self.res_coord.setTextInteractionFlags(Qt.TextSelectableByMouse)
+
+        self.copy_button = QPushButton("Copiar Coordenada")
+        self.copy_button.setEnabled(False)
+        self.copied_coord = QLabel()
+
+        self.initUI()
+        
+    def initUI(self):
+        vbox = QVBoxLayout()
+        vbox.setContentsMargins(50, 30, 50, 50)
+
+        vbox.addWidget(self.logo)
+        vbox.addWidget(self.coord_label)
+        vbox.addWidget(self.coord_input)
+        vbox.addWidget(self.get_coord_button)
+        vbox.addWidget(self.res_coord)
+        vbox.addWidget(self.copy_button)
+        vbox.addWidget(self.copied_coord)
+
+        self.setLayout(vbox)
+
+        self.logo.setAlignment(Qt.AlignCenter)
+        self.coord_label.setAlignment(Qt.AlignCenter)
+        self.coord_input.setAlignment(Qt.AlignCenter)
+        self.res_coord.setAlignment(Qt.AlignCenter)
+        self.copied_coord.setAlignment(Qt.AlignCenter)
+
+        self.logo.setObjectName("logo")
+        self.coord_label.setObjectName("coord_label")
+        self.coord_input.setObjectName("coord_input")
+        self.get_coord_button.setObjectName("get_coord_button")
+        self.res_coord.setObjectName("res_coord")
+        self.copied_coord.setObjectName("copied_coord")
+
+        self.setStyleSheet("""
+            QWidget{
+                background-color: #750101;
+            }
+            QLabel, QPushButton{
+                font-family: calibri;
+            }
+            QLabel#logo{
+                font-size: 40px;
+                font-weight: bold;
+                color: #e3812b;
+            }
+            QLabel#coord_label{
+                color: white;
+                font-size: 40px;
+                font-weight: bold;
+            }
+            QLineEdit#coord_input{
+                color: white;
+                font-size: 30px;   
+                background: transparent;
+                border: none;
+                outline: none;
+                border: 2px solid rgba(255, 255, 255, 0.2);
+                border-radius: 10px;
+                color: #fff;
+                padding: 5px 5px;
+            
+            }
+            QPushButton{
+                padding: 5px 5px;
+                font-size: 30px;
+                color: white;
+                font-weight: bold;
+                background-color: #e3812b;
+                border-radius: 10px;
+            }          
+            QLabel#res_coord{
+                font-size: 35px;
+                color: white;
+            }
+            QLabel#copied_coord{
+                font-size: 35px;
+                color: white;
+            }
+        """)
+
+        self.get_coord_button.clicked.connect(self.get_coord)
+        self.copy_button.clicked.connect(self.copy_coord)
+        
+    def get_coord(self):
+        link = self.coord_input.text()
+
+        if not link:
+            self.res_coord.setText("Digite uma coordenada.")
+            self.copy_button.setEnabled(False)
+            self.copied_coord.clear()
+            self.adjustSize()
+            return 
+
+        coord = WazeGenerator.generate_waze_coord(link)
+        self.res_coord.setText(coord)
+        self.copy_button.setEnabled(True)
+        self.copied_coord.clear()
+        self.coord_input.clear()
+
+        self.adjustSize()
+
+    def copy_coord(self):
+        QApplication.clipboard().setText(self.res_coord.text())
+        self.copied_coord.setText("Coordenada Copiada.")
         
 class RegisterProductsGUI(QWidget):
     def __init__(self):
@@ -234,12 +365,12 @@ class RegisterProductsGUI(QWidget):
         
         if not product:
             self.product_label.setText("Por favor, digite o nome do produto.")
-            # self.adjustSize()
+            self.adjustSize()
             return
         
         if not price_text:
             self.product_label.setText("Por favor, digite o preço do produto.")
-            # self.adjustSize()
+            self.adjustSize()
             return
         
         price = price_text.replace(" ", "").replace(",", ".")
@@ -336,7 +467,7 @@ class CalculateItemsGUI(QWidget):
         self.add_btn = QPushButton("Adicionar Item")
         self.add_btn.setFixedWidth(250)
         self.add_btn.clicked.connect(self.add_item_row)
-        self.add_btn.setStyleSheet("background-color: #e3812b; font-size: 20px; font-weight: bold; border-radius: 10px;;")
+        self.add_btn.setStyleSheet("background-color: #e3812b; font-size: 20px; font-weight: bold; border-radius: 10px;")
 
         self.footer_layout.addWidget(self.total_label)
         self.footer_layout.addStretch()
@@ -457,9 +588,13 @@ class MainWindow(QMainWindow):
         self.menu_widget.setFixedWidth(80)
         self.menu_layout = QVBoxLayout(self.menu_widget)
 
-        self.btn_waze = QPushButton()
-        self.btn_waze.setIcon(QIcon("shared/icons/link.png"))
-        self.btn_waze.setIconSize(QSize(24, 24))
+        self.btn_waze_link = QPushButton()
+        self.btn_waze_link.setIcon(QIcon("shared/icons/link.png"))
+        self.btn_waze_link.setIconSize(QSize(24, 24))
+        
+        self.btn_waze_coord = QPushButton()
+        self.btn_waze_coord.setIcon(QIcon("shared/icons/link.png"))
+        self.btn_waze_coord.setIconSize(QSize(24, 24))
         
         self.btn_products = QPushButton()
         self.btn_products.setIcon(QIcon("shared/icons/products.png"))
@@ -471,22 +606,26 @@ class MainWindow(QMainWindow):
 
         self.menu_widget.setObjectName("menu")
         
-        self.btn_waze.setObjectName("menu_button")
+        self.btn_waze_link.setObjectName("menu_button")
+        self.btn_waze_coord.setObjectName("menu_button")
         self.btn_products.setObjectName("menu_button")
         self.btn_calculate.setObjectName("menu_button")
 
-        self.menu_layout.addWidget(self.btn_waze)
+        self.menu_layout.addWidget(self.btn_waze_link)
+        self.menu_layout.addWidget(self.btn_waze_coord)
         self.menu_layout.addWidget(self.btn_products)
         self.menu_layout.addWidget(self.btn_calculate)
         self.menu_layout.addStretch()
 
         self.stack = QStackedWidget()
 
-        self.waze_screen = WazeLinkGUI()
+        self.waze_link_screen = WazeLinkGUI()
+        self.waze_coord_screen = WazeCoordGUI()
         self.products_screen = RegisterProductsGUI()
         self.calculate_items = CalculateItemsGUI()
 
-        self.stack.addWidget(self.waze_screen)
+        self.stack.addWidget(self.waze_link_screen)
+        self.stack.addWidget(self.waze_coord_screen)
         self.stack.addWidget(self.products_screen)
         self.stack.addWidget(self.calculate_items)
 
@@ -495,9 +634,10 @@ class MainWindow(QMainWindow):
 
         self.stack.setCurrentIndex(0)
 
-        self.btn_waze.clicked.connect(lambda: self.stack.setCurrentIndex(0))
-        self.btn_products.clicked.connect(lambda: self.stack.setCurrentIndex(1))
-        self.btn_calculate.clicked.connect(lambda: self.stack.setCurrentIndex(2))
+        self.btn_waze_link.clicked.connect(lambda: self.stack.setCurrentIndex(0))
+        self.btn_waze_coord.clicked.connect(lambda: self.stack.setCurrentIndex(1))
+        self.btn_products.clicked.connect(lambda: self.stack.setCurrentIndex(2))
+        self.btn_calculate.clicked.connect(lambda: self.stack.setCurrentIndex(3))
 
         self.setStyleSheet("""
             QWidget{
@@ -553,17 +693,15 @@ class MainWindow(QMainWindow):
             print(f"Tabela {table_name} criada/carregada com sucesso!")
         else:
             print("Erro ao criar a tabela: ", query.lastError().text())
-        
-    
 
 def main():
-    # cria a aplicação
     app = QApplication(sys.argv)
-    # janela principal
-    window = MainWindow()
-    window.show()
-    # looping de eventos
-    sys.exit(app.exec_())
+    try:
+        window = MainWindow()
+        window.show()
+        sys.exit(app.exec_())
+    except KeyboardInterrupt:
+        sys.exit(0)
 
 if __name__ == "__main__":
     main()
